@@ -60,39 +60,113 @@ export async function getOrCreatePlayer(username) {
 
 // Score management functions
 export async function saveScore(playerId, score, level) {
-    const { data, error } = await supabase
-        .from('scores')
-        .insert([{ player_id: playerId, score, level }]);
+    console.log(`Attempting to save score ${score} for player ${playerId}`);
     
-    if (error) {
-        console.error('Error saving score:', error);
+    try {
+        // Step 1: Get all existing scores for this player
+        const { data: existingScores, error: fetchError } = await supabase
+            .from('scores')
+            .select('id, score')
+            .eq('player_id', playerId);
+        
+        if (fetchError) {
+            console.error('Error fetching existing scores:', fetchError);
+            throw fetchError;
+        }
+        
+        // Step 2: Find the highest existing score
+        let highestExistingScore = 0;
+        if (existingScores && existingScores.length > 0) {
+            highestExistingScore = Math.max(...existingScores.map(s => s.score));
+        }
+        
+        console.log(`Player's highest existing score: ${highestExistingScore}`);
+        
+        // Step 3: If new score is not higher, don't save it
+        if (score <= highestExistingScore) {
+            console.log(`Not saving score ${score} as it's not higher than existing ${highestExistingScore}`);
+            return null;
+        }
+        
+        // Step 4: Delete ALL existing scores for this player
+        if (existingScores && existingScores.length > 0) {
+            console.log(`Deleting ${existingScores.length} previous scores for player ${playerId}`);
+            const { error: deleteError } = await supabase
+                .from('scores')
+                .delete()
+                .eq('player_id', playerId);
+            
+            if (deleteError) {
+                console.error('Error deleting previous scores:', deleteError);
+                throw deleteError;
+            }
+        }
+        
+        // Step 5: Insert the new high score
+        console.log(`Inserting new high score ${score} for player ${playerId}`);
+        const { data, error } = await supabase
+            .from('scores')
+            .insert([{ player_id: playerId, score, level }]);
+        
+        if (error) {
+            console.error('Error saving new high score:', error);
+            throw error;
+        }
+        
+        console.log(`Successfully saved new high score: ${score}`);
+        return data;
+    } catch (error) {
+        console.error('Unexpected error in saveScore:', error);
         throw error;
     }
-    
-    return data;
 }
 
 export async function getTopScores(limit = 10) {
-    const { data, error } = await supabase
-        .from('scores')
-        .select(`
-            id,
-            score,
-            level,
-            created_at,
-            players (
-                username
-            )
-        `)
-        .order('score', { ascending: false })
-        .limit(limit);
-    
-    if (error) {
-        console.error('Error fetching top scores:', error);
-        throw error;
+    try {
+        // First get all scores
+        const { data, error } = await supabase
+            .from('scores')
+            .select(`
+                id,
+                score,
+                level,
+                created_at,
+                player_id,
+                players (
+                    id,
+                    username
+                )
+            `)
+            .order('score', { ascending: false });
+        
+        if (error) {
+            console.error('Error fetching top scores:', error);
+            throw error;
+        }
+        
+        // Filter to get only the highest score per player
+        const playerHighestScores = {};
+        
+        data.forEach(score => {
+            const playerId = score.player_id;
+            
+            // If we haven't seen this player yet, or this score is higher than their previous best
+            if (!playerHighestScores[playerId] || score.score > playerHighestScores[playerId].score) {
+                playerHighestScores[playerId] = score;
+            }
+        });
+        
+        // Convert back to array and sort by score
+        const uniqueScores = Object.values(playerHighestScores)
+            .sort((a, b) => b.score - a.score)
+            .slice(0, limit);
+        
+        console.log(`Returning ${uniqueScores.length} unique player high scores`);
+        return uniqueScores;
+    } catch (error) {
+        console.error('Error processing top scores:', error);
+        return [];
     }
-    
-    return data;
 }
 
 // Achievement management functions
