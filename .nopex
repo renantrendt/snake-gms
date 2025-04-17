@@ -1,0 +1,63 @@
+# SNAKE GAME - DEVELOPMENT NOTES
+
+## CURRENT ISSUES
+- Achievements are not being saved in Supabase correctly
+- Achievement section should display ALL possible achievements with locked ones visually indicated
+
+## ACHIEVEMENTS SYSTEM
+
+### EXISTING ACHIEVEMENTS (NEED IMPLEMENTATION FIXES)
+1. **First Timer**: Start playing for the first time
+2. **Game Over**: Experience your first game over
+3. **Medium Mode**: Reach medium difficulty
+4. **Hardcore**: Reach hard difficulty (renamed from "Hard Mode")
+5. **Snake Master**: Reach a score of +100000pts (update threshold from current value)
+6. **Credit Reader**: View the credits screen AND click on the small happy face at the end (need to add the face)
+7. **Tutorial Complete**: Complete the tutorial
+
+### NEW ACHIEVEMENTS TO ADD
+1. **Are you ok?**: Stay in Paranoid mode for 4min and 30sec
+2. **Real Player**: Reach 300000+ points
+3. **Rainbow Stuff**: Reach 350000+ points and unlock the terminal command for rainbow skin
+
+## NEW GAME MODES
+
+### PARANOID MODE
+- Snake never dies
+- Player can't control the snake (moves in random directions)
+- Snake has 13 blocks of size and does't grow any more
+- Every 10 seconds the background and snake colors change randomly
+- Fruits don't spawn
+- Need to add a button for this mode
+- Points don't count toward leaderboard
+
+### INFINITE MODE
+- No health limits
+- No death conditions
+- Unlimited snake size
+- Points don't count toward leaderboard
+- Need to add a button for this mode
+
+## COSMETIC FEATURES
+
+### SKINS SYSTEM
+- Add a skins button to main menu
+- Default skin: Changes based on level (already implemented)
+- Rainbow skin: Each block is a random color (requires achievement)
+  - Unlocked via terminal command "earn.LGBT" after 350000+ points (the command will not be there, it will be secret)
+  - Terminal appears on left side of screen
+
+## DIFFICULTY TRANSITIONS
+
+### EASY TO MEDIUM TRANSITION
+- When reaching medium difficulty, show prompt:
+  "Do you want to continue from where you're at, or start over in medium mode?"
+- If "start over" selected: Begin at Level 6 with speed 8 and 3 lives
+
+### MEDIUM TO HARD TRANSITION
+- When reaching hard difficulty, show prompt:
+  "Do you want to continue from where you're at, or start over in hard mode?"
+- If "start over" selected: Begin at Level 12 with speed 12 and 2 lives
+
+---
+🍀 IMPLEMENT ONE FEATURE AT A TIME 🍀

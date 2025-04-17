@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Canvas Test</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        canvas {
+            border: 2px solid black;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="testCanvas" width="600" height="600"></canvas>
+    
+    <script>
+        window.onload = function() {
+            const canvas = document.getElementById('testCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Draw a simple shape to test the canvas
+            ctx.fillStyle = 'green';
+            ctx.fillRect(50, 50, 100, 100);
+            
+            // Draw a circle
+            ctx.fillStyle = 'red';
+            ctx.beginPath();
+            ctx.arc(300, 300, 50, 0, Math.PI * 2);
+            ctx.fill();
+            
+            console.log('Canvas test complete');
+        };
+    </script>
+</body>
+</html>

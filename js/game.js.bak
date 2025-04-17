@@ -1,0 +1,713 @@
+// Main game file - imports all components and initializes the game
+import { Game } from './components/game.js';
+import * as playerManager from './playerManager.js';
+import * as skinManager from './skinManager.js';
+
+// Game states
+const GameState = {
+    MAIN_MENU: 'main_menu',
+    PLAYING: 'playing',
+    PAUSED: 'paused',
+    DEATH: 'death',
+    GAME_OVER: 'game_over',
+    CREDITS: 'credits',
+    LEADERBOARD: 'leaderboard',
+    HOW_TO_PLAY: 'how_to_play',
+    ACHIEVEMENTS: 'achievements',
+    PARANOID_MODE: 'paranoid_mode',
+    INFINITE_MODE: 'infinite_mode',
+    SKINS: 'skins_screen'
+};
+
+// Game modes
+const GameMode = {
+    NORMAL: 'normal',
+    INFINITE: 'infinite',
+    PARANOID: 'paranoid'
+};
+
+// Initialize the game when the window loads
+window.onload = async function() {
+    // Create a new game instance
+    const snakeGame = new Game('game-canvas');
+    
+    // Initialize skin manager and make it globally available
+    window.skinManager = skinManager;
+    skinManager.initSkinManager();
+    
+    let currentState = GameState.MAIN_MENU;
+    let previousState = null;
+    let currentGameMode = GameMode.NORMAL;
+    let paranoidModeTimer = null;
+    let paranoidModeDuration = 0;
+    let paranoidColorChangeInterval = null;
+    
+    // Fix for buttons not being clickable
+    setTimeout(() => {
+        // Add direct click handlers to all buttons
+        document.querySelectorAll('button').forEach(button => {
+            const newButton = button.cloneNode(true);
+            if (button.parentNode) {
+                button.parentNode.replaceChild(newButton, button);
+                console.log('Fixed button:', newButton.id || newButton.textContent);
+            }
+        });
+        
+        // Re-add event listeners
+        setupButtonEventListeners();
+    }, 500);
+    
+    // Initialize player manager
+    await playerManager.initPlayerManager();
+    
+    // Show login dialog if no player is logged in
+    if (!playerManager.getCurrentPlayer()) {
+        await playerManager.showPlayerDialog();
+    }
+    
+    // Function to set up all button event listeners
+    function setupButtonEventListeners() {
+        // Main menu buttons
+        document.getElementById('play-button').addEventListener('click', () => {
+            showScreen(GameState.PLAYING);
+            snakeGame.reset();
+            snakeGame.start();
+        });
+        
+        document.getElementById('infinite-mode-button').addEventListener('click', () => {
+            startInfiniteMode();
+        });
+        
+        document.getElementById('paranoid-mode-button').addEventListener('click', () => {
+            startParanoidMode();
+        });
+        
+        document.getElementById('skins-button').addEventListener('click', () => {
+            showScreen(GameState.SKINS);
+        });
+        
+        document.getElementById('achievements-button').addEventListener('click', () => {
+            showScreen(GameState.ACHIEVEMENTS);
+        });
+        
+        document.getElementById('leaderboard-button').addEventListener('click', () => {
+            showScreen(GameState.LEADERBOARD);
+        });
+        
+        document.getElementById('credits-button').addEventListener('click', () => {
+            showScreen(GameState.CREDITS);
+        });
+        
+        // Back buttons
+        document.querySelectorAll('.back-button').forEach(button => {
+            button.addEventListener('click', () => {
+                if (previousState) {
+                    showScreen(previousState);
+                    previousState = null;
+                } else {
+                    showScreen(GameState.MAIN_MENU);
+                }
+            });
+        });
+        
+        // Skin selection buttons
+        document.querySelectorAll('.select-skin-button').forEach(button => {
+            button.addEventListener('click', () => {
+                if (button.disabled) return;
+                
+                const skin = button.dataset.skin;
+                if (window.skinManager) {
+                    window.skinManager.selectSkin(skin);
+                    console.log('Selected skin:', skin);
+                }
+            });
+        });
+    }
+    
+    // Check if player has seen tutorial
+    if (!playerManager.hasPlayerSeenTutorial()) {
+        showScreen(GameState.HOW_TO_PLAY);
+        // Mark tutorial as seen after showing it
+        playerManager.markTutorialSeen();
+    } else {
+        // Show the main menu initially
+        showScreen(GameState.MAIN_MENU);
+    }
+    
+    // Load leaderboard data
+    loadLeaderboardData();
+    
+    // Load achievements data
+    loadAchievementsData();
+    
+    // Function to show a specific screen
+    function showScreen(screenState) {
+        // Hide all screens first
+        document.querySelectorAll('.screen').forEach(screen => {
+            screen.classList.add('hidden');
+        });
+        
+        // Hide other UI elements
+        document.getElementById('game-over').classList.add('hidden');
+        document.getElementById('pause-menu').classList.add('hidden');
+        
+        // Show the requested screen
+        switch(screenState) {
+            case GameState.MAIN_MENU:
+                document.getElementById('main-menu').classList.remove('hidden');
+                break;
+            case GameState.PLAYING:
+                document.getElementById('game-screen').classList.remove('hidden');
+                break;
+            case GameState.DEATH:
+                document.getElementById('death-screen').classList.remove('hidden');
+                playerManager.handleGameEvent('death');
+                break;
+            case GameState.GAME_OVER:
+                document.getElementById('game-over').classList.remove('hidden');
+                break;
+            case GameState.CREDITS:
+                document.getElementById('credits-screen').classList.remove('hidden');
+                playerManager.handleGameEvent('credits_viewed');
+                break;
+            case GameState.LEADERBOARD:
+                document.getElementById('leaderboard-screen').classList.remove('hidden');
+                // Refresh leaderboard data when viewing
+                loadLeaderboardData();
+                break;
+            case GameState.HOW_TO_PLAY:
+                document.getElementById('how-to-play-screen').classList.remove('hidden');
+                break;
+            case GameState.ACHIEVEMENTS:
+                document.getElementById('achievements-screen').classList.remove('hidden');
+                // Refresh achievements data when viewing
+                loadAchievementsData();
+                break;
+            case GameState.PAUSED:
+                document.getElementById('game-screen').classList.remove('hidden');
+                document.getElementById('pause-menu').classList.remove('hidden');
+                break;
+            case GameState.SKINS:
+                document.getElementById('skins-screen').classList.remove('hidden');
+                skinManager.initSkinManager();
+                break;
+        }
+        
+        currentState = screenState;
+    }
+    
+    // Function to load achievements data
+    async function loadAchievementsData() {
+        const achievementsContent = document.getElementById('achievements-content');
+        achievementsContent.innerHTML = '<p>Loading achievements...</p>';
+        
+        try {
+            const achievements = await playerManager.getPlayerAchievements();
+            
+            // Create achievements grid
+            let gridHtml = '<div class="achievements-grid">';
+            
+            // Define all possible achievements (including locked ones)
+            const allAchievements = [
+                { name: 'First Timer', description: 'Start playing for the first time', icon: '🎮' },
+                { name: 'Game Over', description: 'Experience your first game over', icon: '💀' },
+                { name: 'Medium Mode', description: 'Reach medium difficulty', icon: '🔄' },
+                { name: 'Hardcore', description: 'Reach hard difficulty', icon: '🔥' },
+                { name: 'Snake Master', description: 'Reach a score of 100000+', icon: '👑' },
+                { name: 'Credit Reader', description: 'View the credits screen and find the secret', icon: '📜' },
+                { name: 'Tutorial Complete', description: 'Complete the tutorial', icon: '📚' },
+                { name: 'Are you ok?', description: 'Stay in Paranoid mode for 4min 30sec', icon: '🌀' },
+                { name: 'Real Player', description: 'Reach 300000+ points', icon: '🏆' },
+                { name: 'Rainbow Stuff', description: 'Unlock the rainbow skin', icon: '🌈' },
+                { name: 'Death Master', description: 'Die 199 times', icon: '☠️' },
+                { name: 'Infinite Explorer', description: 'Reach level 38 in Infinite Mode', icon: '🌌' },
+                { name: 'Skull Skin', description: 'Unlock the Skull skin', icon: '💀' },
+                { name: 'Paranoid Skin', description: 'Unlock the Paranoid skin', icon: '👁️' },
+                { name: 'Infinite Skin', description: 'Unlock the Infinite Snake skin', icon: '✨' }
+            ];
+            
+            // Create a map of unlocked achievements
+            const unlockedMap = {};
+            if (achievements && achievements.length > 0) {
+                achievements.forEach(achievement => {
+                    unlockedMap[achievement.name] = true;
+                });
+            }
+            
+            // Display all achievements (locked and unlocked)
+            allAchievements.forEach(achievement => {
+                const isUnlocked = unlockedMap[achievement.name] || false;
+                gridHtml += `
+                    <div class="achievement-item ${isUnlocked ? '' : 'locked'}">
+                        <div class="achievement-item-icon">${achievement.icon}</div>
+                        <div class="achievement-item-name">${achievement.name}</div>
+                        <div class="achievement-item-desc">${achievement.description}</div>
+                    </div>
+                `;
+            });
+            
+            gridHtml += '</div>';
+            
+            // Add stats
+            const unlockedCount = achievements ? achievements.length : 0;
+            gridHtml += `
+                <div class="achievements-stats">
+                    <p>Unlocked: ${unlockedCount} / ${allAchievements.length}</p>
+                </div>
+            `;
+            
+            achievementsContent.innerHTML = gridHtml;
+            
+        } catch (error) {
+            console.error('Error loading achievements:', error);
+            achievementsContent.innerHTML = '<p>Error loading achievements. Please try again later.</p>';
+            
+            // Show all achievements anyway, all locked
+            const allAchievements = [
+                { name: 'First Timer', description: 'Start playing for the first time', icon: '🎮' },
+                { name: 'Game Over', description: 'Experience your first game over', icon: '💀' },
+                { name: 'Medium Mode', description: 'Reach medium difficulty', icon: '🔄' },
+                { name: 'Hardcore', description: 'Reach hard difficulty', icon: '🔥' },
+                { name: 'Snake Master', description: 'Reach a score of 100000+', icon: '👑' },
+                { name: 'Credit Reader', description: 'View the credits screen and find the secret', icon: '📜' },
+                { name: 'Tutorial Complete', description: 'Complete the tutorial', icon: '📚' },
+                { name: 'Are you ok?', description: 'Stay in Paranoid mode for 4min 30sec', icon: '🌀' },
+                { name: 'Real Player', description: 'Reach 300000+ points', icon: '🏆' },
+                { name: 'Rainbow Stuff', description: 'Unlock the rainbow skin', icon: '🌈' },
+                { name: 'Death Master', description: 'Die 199 times', icon: '☠️' },
+                { name: 'Infinite Explorer', description: 'Reach level 38 in Infinite Mode', icon: '🌌' },
+                { name: 'Skull Skin', description: 'Unlock the Skull skin', icon: '💀' },
+                { name: 'Paranoid Skin', description: 'Unlock the Paranoid skin', icon: '👁️' },
+                { name: 'Infinite Skin', description: 'Unlock the Infinite Snake skin', icon: '✨' }
+            ];
+            
+            let gridHtml = '<div class="achievements-grid">';
+            
+            allAchievements.forEach(achievement => {
+                gridHtml += `
+                    <div class="achievement-item locked">
+                        <div class="achievement-item-icon">${achievement.icon}</div>
+                        <div class="achievement-item-name">${achievement.name}</div>
+                        <div class="achievement-item-desc">${achievement.description}</div>
+                    </div>
+                `;
+            });
+            
+            gridHtml += '</div>';
+            
+            gridHtml += `
+                <div class="achievements-stats">
+                    <p>Unlocked: 0 / ${allAchievements.length}</p>
+                </div>
+            `;
+            
+            achievementsContent.innerHTML = gridHtml;
+        }
+    }
+    
+    // Function to load leaderboard data
+    async function loadLeaderboardData() {
+        const leaderboardContent = document.getElementById('leaderboard-content');
+        leaderboardContent.innerHTML = '<p>Loading leaderboard data...</p>';
+        
+        try {
+            const scores = await playerManager.getTopScores(10);
+            
+            if (scores.length === 0) {
+                leaderboardContent.innerHTML = '<p>No scores yet!</p>';
+                return;
+            }
+            
+            // Create leaderboard table
+            let tableHtml = `
+                <table class="leaderboard-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Player</th>
+                            <th>Score</th>
+                            <th>Level</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            scores.forEach((score, index) => {
+                const date = new Date(score.created_at).toLocaleDateString();
+                tableHtml += `
+                    <tr>
+                        <td class="leaderboard-rank">${index + 1}</td>
+                        <td>${score.players.username}</td>
+                        <td class="leaderboard-score">${score.score}</td>
+                        <td>${score.level}</td>
+                        <td>${date}</td>
+                    </tr>
+                `;
+            });
+            
+            tableHtml += `
+                    </tbody>
+                </table>
+            `;
+            
+            leaderboardContent.innerHTML = tableHtml;
+        } catch (error) {
+            console.error('Error loading leaderboard:', error);
+            leaderboardContent.innerHTML = '<p>Error loading leaderboard data. Please try again later.</p>';
+        }
+    }
+    
+    // Set up event listeners for all buttons and screens
+    
+    // Helper to check if player has unlocked a specific mode
+    function hasUnlockedMediumMode() {
+        // Check if player has medium mode achievement
+        const result = playerManager.hasAchievement('Medium Mode');
+        console.log('Checking Medium Mode achievement:', result);
+        return result;
+    }
+    
+    function hasUnlockedHardMode() {
+        // Check if player has hard mode achievement
+        const result = playerManager.hasAchievement('Hardcore');
+        console.log('Checking Hardcore achievement:', result);
+        return result;
+    }
+    
+    // Update button states based on unlocked modes
+    function updateModeButtons() {
+        const infiniteButton = document.getElementById('infinite-mode-button');
+        const paranoidButton = document.getElementById('paranoid-mode-button');
+        
+        console.log('Current achievements:', playerManager.getCurrentAchievements());
+        
+        // Only enable Infinite Mode if player has beaten Medium mode
+        if (hasUnlockedMediumMode()) {
+            infiniteButton.disabled = false;
+            infiniteButton.classList.remove('locked-mode');
+            infiniteButton.title = 'Play Infinite Mode';
+        } else {
+            infiniteButton.disabled = true;
+            infiniteButton.classList.add('locked-mode');
+            infiniteButton.title = 'Beat Medium Mode to unlock';
+        }
+        
+        // Only enable Paranoid Mode if player has beaten Hard mode
+        if (hasUnlockedHardMode()) {
+            paranoidButton.disabled = false;
+            paranoidButton.classList.remove('locked-mode');
+            paranoidButton.title = 'Play Paranoid Mode';
+        } else {
+            paranoidButton.disabled = true;
+            paranoidButton.classList.add('locked-mode');
+            paranoidButton.title = 'Beat Hard Mode to unlock';
+        }
+    }
+    
+    // Update the buttons when the page loads and after achievements are loaded
+    document.addEventListener('DOMContentLoaded', () => {
+        // Wait a bit for achievements to load first
+        setTimeout(updateModeButtons, 1000);
+    });
+    
+    // Custom event for when achievements are loaded
+    document.addEventListener('achievementsLoaded', updateModeButtons);
+    
+    // Play button (normal mode)
+    document.getElementById('play-button').addEventListener('click', () => {
+        currentGameMode = GameMode.NORMAL;
+        showScreen(GameState.PLAYING);
+        snakeGame.reset();
+        snakeGame.start();
+    });
+    
+    // Infinite Mode button
+    document.getElementById('infinite-mode-button').addEventListener('click', () => {
+        if (!hasUnlockedMediumMode()) {
+            alert('You need to beat Medium Mode first!'); 
+            return;
+        }
+        
+        currentGameMode = GameMode.INFINITE;
+        showScreen(GameState.PLAYING);
+        startInfiniteMode();
+    });
+    
+    // Paranoid Mode button
+    document.getElementById('paranoid-mode-button').addEventListener('click', () => {
+        if (!hasUnlockedHardMode()) {
+            alert('You need to beat Hard Mode first!');
+            return;
+        }
+        
+        currentGameMode = GameMode.PARANOID;
+        showScreen(GameState.PLAYING);
+        startParanoidMode();
+    });
+    
+    // Function to start infinite mode
+    function startInfiniteMode() {
+        // Reset game but with infinite health and no score tracking on leaderboard
+        snakeGame.reset();
+        snakeGame.health = Infinity;
+        snakeGame.isInfiniteMode = true;
+        // Don't disable collision detection - we still want wall collision
+        snakeGame.hasWallCollision = true;
+        snakeGame.start();
+    }
+    
+    // Function to start paranoid mode
+    function startParanoidMode() {
+        // Reset paranoid mode timer
+        paranoidModeDuration = 0;
+        
+        // Set up snake with 13 blocks
+        snakeGame.reset();
+        
+        // Ensure snake has exactly 13 blocks total
+        const currentLength = snakeGame.snake.segments.length;
+        if (currentLength < 180) {
+            // Add segments until we reach 13
+            const tail = snakeGame.snake.segments[snakeGame.snake.segments.length - 1];
+            for (let i = 0; i < (180 - currentLength); i++) {
+                snakeGame.snake.segments.push({...tail});
+            }
+        } else if (currentLength > 180) {
+            // Remove segments until we reach 13
+            snakeGame.snake.segments = snakeGame.snake.segments.slice(0, 180);
+        }
+        
+        // Enable invincibility and random movement
+        snakeGame.isParanoidMode = true;
+        snakeGame.health = Infinity;
+        // Disable player control completely
+        snakeGame.allowPlayerControl = false;
+        // Make movement faster in paranoid mode
+        snakeGame.randomMovementChange = 2; // Much faster random direction changes
+        
+        // Start timer for the achievement
+        paranoidModeTimer = setInterval(() => {
+            paranoidModeDuration += 1;
+            
+            // Check for achievement at 4 minutes 30 seconds (270 seconds)
+            if (paranoidModeDuration >= 270) {
+                playerManager.handleGameEvent('paranoid_mode_completed');
+                clearInterval(paranoidModeTimer);
+            }
+        }, 1000); // Check every second
+        
+        // Start random color changes every 10 seconds
+        startParanoidColorChanges();
+        
+        // Start game
+        snakeGame.start();
+    }
+    
+    // Function to randomly change colors in paranoid mode
+    function startParanoidColorChanges() {
+        // Clear any existing interval
+        if (paranoidColorChangeInterval) {
+            clearInterval(paranoidColorChangeInterval);
+        }
+        
+        // Change colors immediately on start
+        changeParanoidColors();
+        
+        // Set interval to change colors every 2 seconds
+        paranoidColorChangeInterval = setInterval(changeParanoidColors, 2000);
+    }
+    
+    // Function to generate random colors
+    function changeParanoidColors() {
+        // Generate random colors
+        const bgColor = getRandomColor();
+        const snakeColor = getRandomColor();
+        
+        // Apply colors
+        snakeGame.backgroundColor = bgColor;
+        snakeGame.snake.setColor(snakeColor);
+    }
+    
+    // Helper function to generate random color
+    function getRandomColor() {
+        const letters = '0123456789ABCDEF';
+        let color = '#';
+        for (let i = 0; i < 6; i++) {
+            color += letters[Math.floor(Math.random() * 16)];
+        }
+        return color;
+    }
+    
+    // Credits button
+    document.getElementById('credits-button').addEventListener('click', () => {
+        showScreen(GameState.CREDITS);
+        playerManager.handleGameEvent('credits_viewed');
+        
+        // Add event listener for the secret happy face (only once)
+        setTimeout(() => {
+            const secretHappyFace = document.getElementById('secret-happy-face');
+            if (secretHappyFace && !secretHappyFace.hasClickListener) {
+                secretHappyFace.hasClickListener = true;
+                secretHappyFace.addEventListener('click', () => {
+                    playerManager.handleGameEvent('credits_secret_found');
+                    secretHappyFace.style.transform = 'scale(2.0) rotate(360deg)';
+                    secretHappyFace.style.color = 'gold';
+                    setTimeout(() => {
+                        secretHappyFace.style.transform = '';
+                        secretHappyFace.textContent = '😂😏🤣';
+                    }, 1000);
+                });
+            }
+        }, 100);
+    });
+    
+    // Leaderboard button
+    document.getElementById('leaderboard-button').addEventListener('click', () => {
+        showScreen(GameState.LEADERBOARD);
+    });
+    
+    // Achievements button
+    document.getElementById('achievements-button').addEventListener('click', () => {
+        showScreen(GameState.ACHIEVEMENTS);
+    });
+    
+    // Skins button
+    document.getElementById('skins-button').addEventListener('click', () => {
+        showScreen(GameState.SKINS);
+    });
+    
+    // Pause menu achievements button
+    document.getElementById('pause-achievements-button').addEventListener('click', () => {
+        previousState = currentState;
+        showScreen(GameState.ACHIEVEMENTS);
+    });
+    
+    // Back buttons
+    document.querySelectorAll('.back-button').forEach(button => {
+        // Remove existing event listeners
+        const newButton = button.cloneNode(true);
+        button.parentNode.replaceChild(newButton, button);
+        
+        // Add new event listener
+        newButton.addEventListener('click', () => {
+            if (previousState === GameState.PAUSED) {
+                showScreen(GameState.PAUSED);
+                previousState = null;
+            } else {
+                showScreen(GameState.MAIN_MENU);
+            }
+        });
+    });
+    
+    // Ensure achievements screen back button works properly
+    const achievementsBackButton = document.querySelector('#achievements-screen .back-button');
+    if (achievementsBackButton) {
+        // Remove existing event listeners
+        const newBackButton = achievementsBackButton.cloneNode(true);
+        achievementsBackButton.parentNode.replaceChild(newBackButton, achievementsBackButton);
+        
+        // Add new event listener
+        newBackButton.addEventListener('click', () => {
+            showScreen(GameState.MAIN_MENU);
+        });
+    }
+    
+    // Death screen click
+    document.getElementById('death-screen').addEventListener('click', () => {
+        // Save score before returning to main menu
+        playerManager.saveScore(snakeGame.score, snakeGame.level);
+        showScreen(GameState.MAIN_MENU);
+    });
+    
+    // Restart button
+    document.getElementById('restart-button').addEventListener('click', () => {
+        // Save score before restarting
+        playerManager.saveScore(snakeGame.score, snakeGame.level);
+        showScreen(GameState.PLAYING);
+        snakeGame.reset();
+        snakeGame.start();
+    });
+    
+    // Pause menu buttons
+    document.getElementById('resume-button').addEventListener('click', () => {
+        showScreen(GameState.PLAYING);
+        snakeGame.resume();
+    });
+    
+    document.getElementById('main-menu-button').addEventListener('click', () => {
+        // Save score before returning to main menu
+        playerManager.saveScore(snakeGame.score, snakeGame.level);
+        showScreen(GameState.MAIN_MENU);
+        snakeGame.stop();
+    });
+    
+    document.getElementById('how-to-play-button').addEventListener('click', () => {
+        previousState = currentState;
+        showScreen(GameState.HOW_TO_PLAY);
+    });
+    
+    // Global keyboard controls
+    document.addEventListener('keydown', (event) => {
+        // ESC key for pause
+        if (event.key === 'Escape') {
+            if (currentState === GameState.PLAYING) {
+                showScreen(GameState.PAUSED);
+                snakeGame.pause();
+            } else if (currentState === GameState.PAUSED) {
+                showScreen(GameState.PLAYING);
+                snakeGame.resume();
+            }
+        }
+    });
+    
+    // Override the game's gameOver method to show the death screen and save score
+    const originalGameOver = snakeGame.gameOver.bind(snakeGame);
+    snakeGame.gameOver = function() {
+        originalGameOver();
+        
+        // Save score
+        playerManager.saveScore(this.score, this.level);
+        
+        if (this.health <= 0) {
+            showScreen(GameState.DEATH);
+        } else {
+            showScreen(GameState.GAME_OVER);
+        }
+    };
+    
+    // Add pause and resume methods to the game
+    snakeGame.pause = function() {
+        if (this.gameLoop) {
+            clearInterval(this.gameLoop);
+            this.gameLoop = null;
+        }
+    };
+    
+    snakeGame.resume = function() {
+        if (!this.gameLoop && !this.isGameOver) {
+            const interval = this.calculateGameInterval(this.gameSpeed);
+            this.gameLoop = setInterval(() => this.update(), interval);
+        }
+    };
+    
+    snakeGame.stop = function() {
+        if (this.gameLoop) {
+            clearInterval(this.gameLoop);
+            this.gameLoop = null;
+        }
+    };
+    
+    // Track difficulty changes for achievements
+    const originalUpdateDifficulty = snakeGame.updateDifficulty.bind(snakeGame);
+    snakeGame.updateDifficulty = function(difficulty) {
+        // Check if difficulty has changed
+        const oldDifficulty = document.getElementById('difficulty').textContent.toLowerCase();
+        if (oldDifficulty !== difficulty) {
+            playerManager.handleGameEvent('difficulty_change', difficulty);
+        }
+        
+        // Call original method
+        originalUpdateDifficulty(difficulty);
+    };
+};

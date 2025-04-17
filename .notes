@@ -1,0 +1,38 @@
+So the plan is we are going to do a Snake game just like googles, steps:
+===
+Begining:
+1. Make a Bg [lvl of need: 7/10] [x]
+2. Make a snake [lvl of need: 10/10] [x]
+3. Make the 10 fruits [lvl of need: 10/10] [x]
+4. Make the speed, health, and deaths [lvl of need: 10/10] [x]
+5. Desing Bgs of the 5 usal levels, 5 medium and 5 hard [lvl of need: 9/10] [x]
+6. Make the game over screen [lvl of need: 9/10] [x]
+======
+Just do latter when I ask you to:
+7. Make the main menu [lvl of need: 8/10] [x]
+8. Make the instructions [lvl of need: 7/10] {Inctrustions should appear when you first open the actual game} [x]
+9. Add a global leaderboard [lvl of need: 7/10] [x]
+===
+Last steps:
+Make Multiplayer [lvl of need: 5/10] []
+Add skins [lvl of need: 1/10] [x]
+Add ads [lvl of need: 0.99/10]
+Add sound [lvl of need: 0.80/10]
+Add achievements [lvl of need: 4/10] [x]
+{add, infinite mode achievement, paranoied mode achievement} [x]
+=====
+vercel []
+gitgub []
+url []
+portifolio[]
+====
+add the infinte mode [x]
+====
+add the paranoied mode, where the snake never dies but you cant control i
+t and it just walks around [random directions] with 13blx of size and each 10sec 
+the bg, and snake color changes. [x]
+
+And make so that after you reach 350000+ points you get the access to command 
+mode, and there is where you can find the LGBT+++ skin [x]
+
+====

@@ -1,0 +1,21 @@
+/* Corner credits button styling */
+.corner-credits-button {
+    position: fixed;
+    bottom: 10px;
+    right: 10px;
+    background-color: rgba(76, 175, 80, 0.7);
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    font-size: 12px;
+    border-radius: 3px;
+    cursor: pointer;
+    z-index: 100;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.corner-credits-button:hover {
+    background-color: rgba(76, 175, 80, 1);
+    transform: scale(1.05);
+}

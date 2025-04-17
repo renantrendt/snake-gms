@@ -1,0 +1,59 @@
+# Snake Game - Implementation Guide
+
+## Core Game Mechanics
+
+- **Speed System**: 
+  - Starts at 5, capped at 25
+  - Each level adds 2 to speed
+  - Different fruits per speed increase based on difficulty
+
+## Fruit Spawning Rules
+
+- Each fruit should ONLY appear in its specific level
+- Fruits per level:
+  - Easy Mode: Each fruit appears exactly 6 times in its level
+  - Medium Mode: Each fruit appears exactly 7 times in its level
+  - Hard Mode: 
+    - Passion Fruit (Level 11): 3 times
+    - Papaya (Level 12): 3 times
+    - Starfruit (Level 13): 3 times
+    - Dragon Fruit (Level 14): 3 times
+    - Banana (Level 15): 1 time
+
+## Difficulty Levels & Fruits
+
+### Easy Mode (Levels 1-5)
+- Level Up: Every 600 points
+- Speed Increase: Every 3 fruits + 1 speed
+
+| Level | Fruit      | Points | Symbol | Background | Snake Color |
+|-------|------------|--------|--------|------------|-------------|
+| 1     | Orange     | 100    | 🍊     | Lavender   | Red         |
+| 2     | Mango      | 100    | 🥭     | Teal       | Blue        |
+| 3     | Grapes     | 100    | 🍇     | Maroon     | Green       |
+| 4     | Blueberry  | 100    | 🫐     | Beige      | Yellow      |
+| 5     | Watermelon | 200    | 🍉     | Turquoise  | Purple      |
+
+### Medium Mode (Levels 6-10)
+- Level Up: Every 700 points
+- Speed Increase: Every 2 fruits + 1 speed
+
+| Level | Fruit      | Points | Symbol | Background | Snake Color |
+|-------|------------|--------|--------|------------|-------------|
+| 6     | Apple      | 100    | 🍎     | Coral      | Bronze      |
+| 7     | Pineapple  | 100    | 🍍     | Olive      | Indigo      |
+| 8     | Strawberry | 100    | 🍓     | Navy       | Cyan        |
+| 9     | Peach      | 100    | 🍑     | Mint       | Magenta     |
+| 10    | Blackberry | 100    | 🫐     | Charcoal   | Amber       |
+
+### Hard Mode (Levels 11-15)
+- Level Up: Every 900 points
+- Speed Increase: Every 1 fruit + 0.5 speed
+
+| Level | Fruit         | Points | Symbol                                  | Background    | Snake Color   |
+|-------|---------------|--------|----------------------------------------|--------------|---------------|
+| 11    | Passion Fruit | 300    | @images__1_-removebg-preview.png       | Lilac        | Emerald       |
+| 12    | Papaya        | 300    | @untitled-removebg-preview.png         | Ivory        | Slate         |
+| 13    | Starfruit     | 300    | ★                                      | Periwinkle   | Mustard       |
+| 14    | Dragon Fruit  | 500    | @how-to-draw-a-dragon-dfruit-feat.png  | Crimson Red  | Ice Blue      |
+| 15    | Banana        | 7777   | 🍌                                     | Midnight Blue| Electric Lime |

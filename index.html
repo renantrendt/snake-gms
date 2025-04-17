@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snake Game</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/skins.css">
+    <link rel="stylesheet" href="css/corner-button.css">
+</head>
+<body>
+    <!-- Main Menu Screen -->
+    <div id="main-menu" class="screen">
+        <h1>Snake Game</h1>
+        <div class="menu-buttons">
+            <button id="play-button">Play</button>
+            <button id="infinite-mode-button">Infinite Mode</button>
+            <button id="paranoid-mode-button">Paranoid Mode</button>
+            <button id="skins-button">Skins</button>
+            <button id="achievements-button">Achievements</button>
+            <button id="leaderboard-button">Leaderboards</button>
+        </div>
+    </div>
+
+    <!-- Credits Screen -->
+    <div id="credits-screen" class="screen hidden">
+        <h2>Credits</h2>
+        <div class="credits-content">
+            <section class="credits-section">
+                <h3>Game Development</h3>
+                <p>Game developed by: Bernardo Serrano 7th grade.</p>
+                <p>View more from me at: bernardoserrano.com</p>
+            </section>
+
+            <section class="credits-section">
+                <h3>Special Thanks</h3>
+                <ul>
+                    <li>Windsurf my loyal helper</li>
+                    <li>The Banana company who I bought my food from that kept me fed</li>
+                    <li>My left sock that mysteriously disappeared</li>
+                    <li>The spider in the corner of my room who watched me code</li>
+                    <li>My programing teacher, who spired me</li>
+                    <li>Spotify who let me alive even when Windsurf wasn't helping</li>
+                </ul>
+            </section>
+
+            <section class="credits-section">
+                <h3>Imaginary Departments</h3>
+                <p><strong>Snack Department:</strong> Cookie Monster, Donut Dude, Pizza Princess, Monkey gods</p>
+                <p><strong>Nap Supervision:</strong> Sleepy McSleeperson, Pillow Fighter, Dream Weaver</p>
+                <p><strong>Rubber Duck Debugging:</strong> Quackers, Sir Quacks-a-lot, Admiral Duckworth</p>
+                <p><strong>Awake Supply Chain:</strong> Bread Counter, Vanilla drinkers, Ube bread company</p>
+            </section>
+
+            <section class="credits-section">
+                <h3>Random Facts That Helped Development</h3>
+                <ul>
+                    <li>Bananas are berries, but strawberries aren't</li>
+                    <li>A group of flamingos is called a "flamboyance"</li>
+                    <li>The average person spends 6 months of their life waiting at red lights</li>
+                    <li>A jiffy is an actual unit of time: 1/100th of a second</li>
+                    <li>The world's oldest piece of chewing gum is 9,000 years old</li>
+                </ul>
+            </section>
+
+            <section class="credits-section">
+                <h3>Inspirational Quotes</h3>
+                <blockquote>"To code, or not to code, that is the question." - William Shakesprogrammer</blockquote>
+                <blockquote>"I came, I saw, I debugged." - Julius Coder</blockquote>
+                <blockquote>"One small step for man, one giant leap for my Snake game." - Neil Codstrong</blockquote>
+                <blockquote>"Ask not what your code can do for you, ask what you can do for your code." - John F. Keyboard</blockquote>
+            </section>
+
+            <section class="credits-section">
+                <h3>Soundtrack</h3>
+                <p>All songs performed by The Imaginary Orchestra</p>
+                <ul>
+                    <li>"Slither and Slide" - Main Theme</li>
+                    <li>"Pixel Muncher Blues" - Game Over Theme</li>
+                    <li>"Dot Dot Revolution" - Level Up Jingle</li>
+                    <li>"The Ballad of the Hungry Snake" - Background Music</li>
+                    <li>"Oops I Hit Myself Again" - Death Theme</li>
+                </ul>
+            </section>
+
+            <section class="credits-section">
+                <h3>No Animals Were Harmed</h3>
+                <p>Except for the digital apples. They had it coming.</p>
+            </section>
+
+            <section class="credits-section">
+                <h3>Legal Disclaimer</h3>
+                <p>Any resemblance to actual snakes, living or dead, is purely coincidental.</p>
+                <p>Side effects of playing this game may include: improved reflexes, addiction to collecting digital fruit, and an irrational fear of hitting walls.</p>
+            </section>
+
+            <section class="credits-section">
+                <h3>Secret Message</h3>
+                <p>If you've read this, you are... <span id="secret-happy-face" class="secret-clickable">😊</span></p>
+            </section>
+        </div>
+        <button class="back-button">Back to Menu</button>
+    </div>
+
+    <!-- Achievements Screen -->
+    <div id="achievements-screen" class="screen hidden">
+        <h2>Achievements</h2>
+        <div id="achievements-content">
+            <p>Loading achievements...</p>
+        </div>
+        <button class="back-button">Back to Menu</button>
+    </div>
+
+    <!-- Leaderboard Screen -->
+    <div id="leaderboard-screen" class="screen hidden">
+        <h2>Leaderboards</h2>
+        <div id="leaderboard-content">
+            <p>No scores yet!</p>
+        </div>
+        <button class="back-button">Back to Menu</button>
+    </div>
+    
+    <!-- Skins Screen -->
+    <div id="skins-screen" class="screen hidden">
+        <h2>Snake Skins</h2>
+        <div id="skins-carousel-container">
+            <button id="prev-skin" class="skin-nav-button">&lt;&lt;</button>
+            
+            <div id="skins-carousel">
+                <!-- Page 1: Default and Rainbow -->
+                <div class="carousel-page active" data-page="1">
+                    <div class="skin-item" data-skin="default">
+                        <div class="skin-preview default-skin"></div>
+                        <div class="skin-info">
+                            <h3>Default</h3>
+                            <p>Changes based on level</p>
+                        </div>
+                        <button class="select-skin-button" data-skin="default">Select</button>
+                    </div>
+                    <div class="skin-item" data-skin="rainbow">
+                        <div class="skin-preview rainbow-skin"></div>
+                        <div class="skin-info">
+                            <h3>Rainbow</h3>
+                            <p>Unlocked via secret terminal command after 350,000+ points</p>
+                        </div>
+                        <button class="select-skin-button" data-skin="rainbow" disabled>Locked</button>
+                    </div>
+                </div>
+                
+                <!-- Page 2: Skull and Paranoid -->
+                <div class="carousel-page" data-page="2">
+                    <div class="skin-item" data-skin="skull">
+                        <div class="skin-preview skull-skin"></div>
+                        <div class="skin-info">
+                            <h3>Skull</h3>
+                            <p>Die 199 times to unlock. Gives you a second chance and restores lives once per minute.</p>
+                        </div>
+                        <button class="select-skin-button" data-skin="skull" disabled>Locked</button>
+                    </div>
+                    <div class="skin-item" data-skin="paranoid">
+                        <div class="skin-preview paranoid-skin"></div>
+                        <div class="skin-info">
+                            <h3>Paranoid</h3>
+                            <p>Stay in Paranoid Mode for 5 minutes. Snake has red eyes and sometimes moves by itself.</p>
+                        </div>
+                        <button class="select-skin-button" data-skin="paranoid" disabled>Locked</button>
+                    </div>
+                </div>
+                
+                <!-- Page 3: Infinite -->
+                <div class="carousel-page" data-page="3">
+                    <div class="skin-item" data-skin="infinite">
+                        <div class="skin-preview infinite-skin"></div>
+                        <div class="skin-info">
+                            <h3>Infinite Snake</h3>
+                            <p>Reach level 38 in Infinite Mode. Cosmic colors and teleport with mouse click.</p>
+                        </div>
+                        <button class="select-skin-button" data-skin="infinite" disabled>Locked</button>
+                    </div>
+                </div>
+            </div>
+            
+            <button id="next-skin" class="skin-nav-button">&gt;&gt;</button>
+            
+            <div id="carousel-indicators">
+                <span class="indicator active" data-page="1"></span>
+                <span class="indicator" data-page="2"></span>
+                <span class="indicator" data-page="3"></span>
+            </div>
+        </div>
+        <div id="terminal-container" class="hidden">
+            <div id="terminal-header">
+                <span>Terminal</span>
+                <button id="close-terminal">×</button>
+            </div>
+            <div id="terminal-output"></div>
+            <div id="terminal-input-container">
+                <span class="prompt">$</span>
+                <input type="text" id="terminal-input" autocomplete="off">
+            </div>
+        </div>
+        <button class="back-button">Back to Menu</button>
+    </div>
+
+    <!-- Game Screen -->
+    <div id="game-screen" class="screen hidden">
+        <div class="game-container">
+            <canvas id="game-canvas" width="800" height="600"></canvas>
+            <div class="game-stats">
+                <div class="score">Score: <span id="score">0</span></div>
+                <div class="health">Health: <span id="health">3</span></div>
+                <div class="level">Level: <span id="level">1</span></div>
+                <div class="speed">Speed: <span id="speed">5</span></div>
+                <div class="difficulty">Difficulty: <span id="difficulty">Easy</span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Death Screen -->
+    <div id="death-screen" class="screen hidden">
+        <h2>Se fudeu</h2>
+        <p>Click anywhere to continue</p>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="game-over" class="hidden">
+        <h2>Game Over</h2>
+        <p>Your Score: <span id="final-score">0</span></p>
+        <button id="restart-button">Play Again</button>
+    </div>
+
+    <!-- Pause Menu -->
+    <div id="pause-menu" class="hidden">
+        <h2>Game Paused</h2>
+        <div class="menu-buttons">
+            <button id="resume-button">Resume</button>
+            <button id="main-menu-button">Main Menu</button>
+            <button id="how-to-play-button">How to Play</button>
+            <button id="pause-achievements-button">Achievements</button>
+        </div>
+    </div>
+
+    <!-- How to Play Screen -->
+    <div id="how-to-play-screen" class="screen hidden">
+        <h2>How to Play</h2>
+        <ul>
+            <li>Use Arrow Keys or WASD to move the snake</li>
+            <li>Collect fruits to increase your score</li>
+            <li>Avoid hitting walls or yourself</li>
+            <li>Press ESC to pause the game</li>
+        </ul>
+        <button class="back-button">Back</button>
+    </div>
+    
+    <button id="credits-button" class="corner-credits-button">Credits</button>
+    
+    <script src="js/game.js" type="module"></script>
+    <script src="js/unlock_test.js" type="module"></script>
+</body>
+</html>
