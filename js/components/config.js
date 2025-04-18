@@ -4,7 +4,7 @@ export const GRID_WIDTH = 40; // Number of cells horizontally (800px / 20px = 40
 export const GRID_HEIGHT = 30; // Number of cells vertically (600px / 20px = 30)
 export const INITIAL_SPEED = 5; // Initial movement speed value
 export const MAX_SPEED = 21; // Maximum speed cap
-export const MAX_HEALTH = 30000000; // Starting health
+export const MAX_HEALTH = 5; // Starting health
 
 // Background colors for each level
 export const backgroundColors = {
