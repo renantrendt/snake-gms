@@ -178,6 +178,18 @@
                         <button class="select-skin-button" data-skin="infinite" disabled>Locked</button>
                     </div>
                 </div>
+                
+                <!-- Page 4: Hacker -->
+                <div class="carousel-page" data-page="4">
+                    <div class="skin-item" data-skin="hacker" style="display: none;">
+                        <div class="skin-preview hacker-skin"></div>
+                        <div class="skin-info">
+                            <h3>Hacker</h3>
+                            <p>Secret skin. Unlocks Creative Mode with custom game settings.</p>
+                        </div>
+                        <button class="select-skin-button" data-skin="hacker" disabled>Locked</button>
+                    </div>
+                </div>
             </div>
             
             <button id="next-skin" class="skin-nav-button">&gt;&gt;</button>
@@ -186,6 +198,7 @@
                 <span class="indicator active" data-page="1"></span>
                 <span class="indicator" data-page="2"></span>
                 <span class="indicator" data-page="3"></span>
+                <span class="indicator" data-page="4"></span>
             </div>
         </div>
         <div id="terminal-container" class="hidden">
@@ -213,6 +226,7 @@
                 <div class="speed">Speed: <span id="speed">5</span></div>
                 <div class="difficulty">Difficulty: <span id="difficulty">Easy</span></div>
             </div>
+            <!-- Creative Mode Controller will be added here dynamically -->
         </div>
     </div>
 
@@ -256,5 +270,6 @@
     
     <script src="js/game.js" type="module"></script>
     <script src="js/unlock_test.js" type="module"></script>
+    <script src="js/hack_terminal.js" type="module"></script>
 </body>
 </html>

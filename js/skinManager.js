@@ -8,7 +8,8 @@ const SKINS = {
     RAINBOW: 'rainbow',
     SKULL: 'skull',
     PARANOID: 'paranoid',
-    INFINITE: 'infinite'
+    INFINITE: 'infinite',
+    HACKER: 'hacker'
 };
 
 // Current selected skin
@@ -21,9 +22,10 @@ export function initSkinManager() {
     const hasSkullSkin = playerManager.hasAchievement('Death Master');
     const hasParanoidSkin = playerManager.hasAchievement('Paranoid Master');
     const hasInfiniteSkin = playerManager.hasAchievement('Cosmic Explorer');
+    const hasHackerSkin = playerManager.hasAchievement('Hacker Mode');
     
     // Update UI to reflect unlocked skins
-    updateSkinsUI(hasRainbowSkin, hasSkullSkin, hasParanoidSkin, hasInfiniteSkin);
+    updateSkinsUI(hasRainbowSkin, hasSkullSkin, hasParanoidSkin, hasInfiniteSkin, hasHackerSkin);
     
     // Set up event listeners
     setupEventListeners();
@@ -33,7 +35,7 @@ export function initSkinManager() {
 }
 
 // Update the skins UI based on unlocked skins
-function updateSkinsUI(hasRainbowSkin, hasSkullSkin, hasParanoidSkin, hasInfiniteSkin) {
+function updateSkinsUI(hasRainbowSkin, hasSkullSkin, hasParanoidSkin, hasInfiniteSkin, hasHackerSkin) {
     // Rainbow skin
     const rainbowButton = document.querySelector('.select-skin-button[data-skin="rainbow"]');
     if (hasRainbowSkin) {
@@ -74,6 +76,19 @@ function updateSkinsUI(hasRainbowSkin, hasSkullSkin, hasParanoidSkin, hasInfinit
         infiniteButton.textContent = 'Locked';
     }
     
+    // Hacker skin - only show if unlocked
+    const hackerSkinItem = document.querySelector('.skin-item[data-skin="hacker"]');
+    if (hackerSkinItem) {
+        if (hasHackerSkin) {
+            hackerSkinItem.style.display = 'block';
+            const hackerButton = document.querySelector('.select-skin-button[data-skin="hacker"]');
+            hackerButton.disabled = false;
+            hackerButton.textContent = 'Select';
+        } else {
+            hackerSkinItem.style.display = 'none';
+        }
+    }
+    
     // Mark the current skin as active
     document.querySelectorAll('.select-skin-button').forEach(button => {
         if (button.dataset.skin === currentSkin) {
@@ -84,6 +99,12 @@ function updateSkinsUI(hasRainbowSkin, hasSkullSkin, hasParanoidSkin, hasInfinit
             button.textContent = 'Select';
         }
     });
+    
+    // Show/hide creative mode controller based on current skin
+    const creativeController = document.getElementById('creative-mode-controller');
+    if (creativeController) {
+        creativeController.style.display = currentSkin === SKINS.HACKER ? 'block' : 'none';
+    }
 }
 
 // Set up event listeners for skin selection
@@ -103,6 +124,9 @@ function setupEventListeners() {
     
     // Carousel navigation
     setupCarouselNavigation();
+    
+    // Creative mode controller setup
+    setupCreativeModeController();
 }
 
 // Set up carousel navigation
@@ -174,6 +198,11 @@ export function getCurrentSkin() {
 // Get the current skin
 export function getCurrentSkinType() {
     return currentSkin;
+}
+
+// Check if the current skin is hacker
+export function isHackerSkin() {
+    return currentSkin === SKINS.HACKER;
 }
 
 // Check if the current skin is rainbow
@@ -395,21 +424,6 @@ function setupTerminal() {
     // Check if terminal should be visible (only after 350,000+ points)
     document.addEventListener('pointsUpdated', (event) => {
         const points = event.detail.points;
-        if (points >= 350000) {
-            document.body.classList.add('terminal-unlocked');
-        }
-    });
-    
-    // Show terminal when unlocked
-    document.body.addEventListener('click', (event) => {
-        if (document.body.classList.contains('terminal-unlocked') && 
-            event.ctrlKey && event.altKey) {
-            showTerminal();
-        }
-    });
-    
-    // Close terminal button
-    closeTerminalButton.addEventListener('click', () => {
         terminalContainer.classList.add('hidden');
     });
     
@@ -417,40 +431,61 @@ function setupTerminal() {
     terminalInput.addEventListener('keydown', (event) => {
         if (event.key === 'Enter') {
             const command = terminalInput.value.trim();
-            processCommand(command);
             terminalInput.value = '';
+            
+            if (command) {
+                appendToTerminal(`> ${command}`);
+                processCommand(command);
+            }
         }
     });
     
     // Process terminal command
     function processCommand(command) {
-        // Add command to output
-        appendToTerminal(`$ ${command}`);
+        const lowerCommand = command.toLowerCase();
         
-        // Process command
-        if (command.toLowerCase() === 'earn.lgbt') {
-            // Unlock rainbow skin
-            appendToTerminal('Unlocking Rainbow Skin...');
-            setTimeout(() => {
+        switch (lowerCommand) {
+            case 'help':
+                appendToTerminal('Available commands:\n- help: Show this help\n- clear: Clear terminal\n- unlock: Try to unlock rainbow skin\n- exit: Close terminal');
+                break;
+            case 'clear':
+                terminalOutput.innerHTML = '';
+                break;
+            case 'exit':
+                terminalContainer.classList.add('hidden');
+                break;
+            case 'unlock':
+                if (document.body.classList.contains('terminal-unlocked')) {
+                    playerManager.handleGameEvent('rainbow_skin_unlocked');
+                    appendToTerminal('Rainbow skin unlocked! 🌈');
+                } else {
+                    appendToTerminal('Access denied. You need to earn more points first.');
+                }
+                break;
+            case 'unlockhacker()':
+            case 'unlockhacker':
+                playerManager.handleGameEvent('hacker_mode_unlocked');
+                appendToTerminal('Hacker skin unlocked! 👨‍💻');
+                // Refresh the skins UI to show the new skin
+                refreshSkinsUI();
+                break;
+            case 'unlockfortest()':
+            case 'unlockfortest':
+                playerManager.unlockForTest().then(() => {
+                    appendToTerminal('All achievements unlocked for testing! 🎮');
+                    // Refresh the skins UI to show all unlocked skins
+                    refreshSkinsUI();
+                });
+                break;
+            case 'earn.lgbt':
+                // Unlock the rainbow skin achievement
                 playerManager.handleGameEvent('rainbow_skin_unlocked');
-                appendToTerminal('Rainbow Skin unlocked! 🌈');
-                updateSkinsUI(true);
-            }, 1000);
-        } else if (command.toLowerCase() === 'help') {
-            appendToTerminal('Available commands:');
-            appendToTerminal('  help - Does nothing');
-            appendToTerminal('  clear - Clears you mind');
-            appendToTerminal('  tips(1) - Gives you a hint');
-            appendToTerminal('  tips(2) - Gives you another hint');
-            appendToTerminal('  .... - A rainbow skin really cool, you should try it');
-        } else if (command.toLowerCase() === 'clear') {
-            terminalOutput.innerHTML = '';
-        } else if (command.toLowerCase() === 'tips(1)') {
-            appendToTerminal('What is rainbow and is a comunity?');
-        } else if (command.toLowerCase() === 'tips(2)') {
-            appendToTerminal('exactly! now get just the 1st 4 letters capital, and add earn. in the beginign');
-        } else {
-            appendToTerminal(`Command not found: ${command}`);
+                appendToTerminal('Pride skin unlocked! 🏳️‍🌈');
+                // Refresh the skins UI
+                refreshSkinsUI();
+                break;
+            default:
+                appendToTerminal(`Unknown command: ${command}`);
         }
     }
     
@@ -460,6 +495,16 @@ function setupTerminal() {
         line.textContent = text;
         terminalOutput.appendChild(line);
         terminalOutput.scrollTop = terminalOutput.scrollHeight;
+    }
+    
+    // Helper function to refresh the skins UI after unlocking achievements
+    function refreshSkinsUI() {
+        const hasRainbowSkin = playerManager.hasAchievement('Rainbow Stuff');
+        const hasSkullSkin = playerManager.hasAchievement('Death Master');
+        const hasParanoidSkin = playerManager.hasAchievement('Paranoid Master');
+        const hasInfiniteSkin = playerManager.hasAchievement('Cosmic Explorer');
+        const hasHackerSkin = playerManager.hasAchievement('Hacker Mode');
+        updateSkinsUI(hasRainbowSkin, hasSkullSkin, hasParanoidSkin, hasInfiniteSkin, hasHackerSkin);
     }
     
     // Show terminal
@@ -481,6 +526,8 @@ export function applySkinEffect(segment, index) {
             return applyParanoidEffect(segment, index);
         case SKINS.INFINITE:
             return applyInfiniteEffect(segment, index);
+        case SKINS.HACKER:
+            return applyHackerEffect(segment, index);
         default:
             return null;
     }
@@ -582,4 +629,149 @@ function applyInfiniteEffect(segment, index) {
     }
     
     return baseColor;
+}
+
+// Hacker-themed colors
+const HACKER_COLORS = [
+    '#00FF00', // Matrix Green
+    '#32CD32', // Lime Green
+    '#228B22', // Forest Green
+    '#008000', // Dark Green
+    '#006400', // Darker Green
+    '#ADFF2F'  // Green Yellow
+];
+
+// Apply hacker effect to snake
+function applyHackerEffect(segment, index) {
+    // Binary pattern effect
+    const timeOffset = Date.now() / 150;
+    
+    // Use different shades of green for a matrix-like effect
+    const colorIndex = (index + Math.floor(timeOffset / 150)) % HACKER_COLORS.length;
+    let baseColor = HACKER_COLORS[colorIndex];
+    
+    // Add occasional binary digits (1s and 0s) as random segments
+    if (Math.random() < 0.02) {
+        return '#FFFFFF'; // White binary digit
+    }
+    
+    // For the head, use a bright green
+    if (index === 0) {
+        return '#00FF00'; // Bright Matrix Green for the head
+    }
+    
+    return baseColor;
+}
+
+// Creative mode controller setup
+function setupCreativeModeController() {
+    // Check if controller already exists
+    if (document.getElementById('creative-mode-controller')) {
+        return; // Already set up
+    }
+    
+    // Create controller container
+    const controller = document.createElement('div');
+    controller.id = 'creative-mode-controller';
+    controller.className = 'creative-mode-controller';
+    controller.style.display = 'none'; // Hidden by default
+    
+    // Add controller title
+    const title = document.createElement('h3');
+    title.textContent = 'Creative Mode';
+    controller.appendChild(title);
+    
+    // Create control inputs
+    const controls = [
+        { id: 'creative-health', label: 'Health', min: 1, max: 10, default: 3 },
+        { id: 'creative-speed', label: 'Speed', min: 1, max: 20, default: 5 },
+        { id: 'creative-size', label: 'Size', min: 1, max: 20, default: 3 },
+        { id: 'creative-level', label: 'Level', min: 1, max: 50, default: 1 },
+        { id: 'creative-score', label: 'Score', min: 0, max: 1000000, default: 0, step: 1000 }
+    ];
+    
+    // Create control elements
+    controls.forEach(control => {
+        const controlGroup = document.createElement('div');
+        controlGroup.className = 'control-group';
+        
+        const label = document.createElement('label');
+        label.textContent = control.label + ':';
+        label.setAttribute('for', control.id);
+        
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.id = control.id;
+        input.min = control.min;
+        input.max = control.max;
+        input.value = control.default;
+        input.step = control.step || 1;
+        
+        // Add event listeners to update game stats when changed
+        input.addEventListener('change', () => {
+            updateGameStat(control.id.replace('creative-', ''), input.value);
+        });
+        
+        // Also update when Enter key is pressed
+        input.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                updateGameStat(control.id.replace('creative-', ''), input.value);
+                // Remove focus from the input to provide visual feedback that the change was applied
+                input.blur();
+            }
+        });
+        
+        controlGroup.appendChild(label);
+        controlGroup.appendChild(input);
+        controller.appendChild(controlGroup);
+    });
+    
+    // Function to update game stats
+    function updateGameStat(stat, value) {
+        // Get the game instance
+        const game = window.snakeGame;
+        if (!game) return;
+        
+        // Update the appropriate stat
+        switch(stat) {
+            case 'health':
+                game.health = parseInt(value);
+                document.getElementById('health').textContent = value;
+                break;
+            case 'speed':
+                game.gameSpeed = parseInt(value);
+                document.getElementById('speed').textContent = value;
+                break;
+            case 'size':
+                // Update snake size
+                const currentSize = game.snake.body.length;
+                const newSize = parseInt(value);
+                
+                if (newSize > currentSize) {
+                    // Add segments
+                    for (let i = currentSize; i < newSize; i++) {
+                        const lastSegment = game.snake.body[game.snake.body.length - 1];
+                        game.snake.body.push({ ...lastSegment });
+                    }
+                } else if (newSize < currentSize) {
+                    // Remove segments (but keep at least the head)
+                    game.snake.body = game.snake.body.slice(0, Math.max(1, newSize));
+                }
+                break;
+            case 'level':
+                game.level = parseInt(value);
+                document.getElementById('level').textContent = value;
+                break;
+            case 'score':
+                game.score = parseInt(value);
+                document.getElementById('score').textContent = value;
+                break;
+        }
+    }
+    
+    // Add controller to game screen
+    const gameScreen = document.getElementById('game-screen');
+    if (gameScreen) {
+        gameScreen.appendChild(controller);
+    }
 }

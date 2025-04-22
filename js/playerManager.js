@@ -307,6 +307,10 @@ export function handleGameEvent(event, data) {
             // Unlocked after reaching level 38 in infinite mode
             unlockAchievement('Cosmic Explorer');
             break;
+        case 'hacker_mode_unlocked':
+            // Unlocked by typing unlockHacker() in the console
+            unlockAchievement('Hacker Mode');
+            break;
     }
 }
 
@@ -327,6 +331,7 @@ export async function unlockForTest() {
         'Death Master',
         'Paranoid Master',
         'Cosmic Explorer',
+        'Hacker Mode',
         'Tutorial Complete'
     ];
     
