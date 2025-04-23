@@ -726,45 +726,114 @@ function setupCreativeModeController() {
         controller.appendChild(controlGroup);
     });
     
+    // Update input values when creative mode is shown
+    const updateInputValues = () => {
+        const game = window.snakeGame;
+        if (!game) return;
+        
+        // Update input values to match current game state
+        document.getElementById('creative-health').value = game.health;
+        document.getElementById('creative-speed').value = game.gameSpeed;
+        document.getElementById('creative-size').value = game.snake.segments.length;
+        document.getElementById('creative-level').value = game.level;
+        document.getElementById('creative-score').value = game.score;
+    };
+    
+    // Update values when the controller becomes visible
+    const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            if (mutation.type === 'attributes' && 
+                mutation.attributeName === 'style' && 
+                controller.style.display === 'block') {
+                updateInputValues();
+            }
+        });
+    });
+    
+    observer.observe(controller, { attributes: true });
+    
     // Function to update game stats
     function updateGameStat(stat, value) {
         // Get the game instance
         const game = window.snakeGame;
         if (!game) return;
         
+        // Parse the value as integer
+        const numValue = parseInt(value);
+        
         // Update the appropriate stat
         switch(stat) {
             case 'health':
-                game.health = parseInt(value);
-                document.getElementById('health').textContent = value;
+                // Set health directly to the new value (not adding to current health)
+                game.health = numValue;
+                document.getElementById('health').textContent = numValue;
                 break;
             case 'speed':
-                game.gameSpeed = parseInt(value);
-                document.getElementById('speed').textContent = value;
+                // Set speed directly to the new value
+                game.gameSpeed = numValue;
+                document.getElementById('speed').textContent = numValue;
+                // Update game loop interval
+                if (game.gameLoop) {
+                    clearInterval(game.gameLoop);
+                    game.gameLoop = setInterval(() => game.update(), game.calculateGameInterval(numValue));
+                }
                 break;
             case 'size':
                 // Update snake size
-                const currentSize = game.snake.body.length;
-                const newSize = parseInt(value);
+                const currentSize = game.snake.segments.length;
+                const newSize = numValue;
                 
-                if (newSize > currentSize) {
-                    // Add segments
-                    for (let i = currentSize; i < newSize; i++) {
-                        const lastSegment = game.snake.body[game.snake.body.length - 1];
-                        game.snake.body.push({ ...lastSegment });
-                    }
-                } else if (newSize < currentSize) {
-                    // Remove segments (but keep at least the head)
-                    game.snake.body = game.snake.body.slice(0, Math.max(1, newSize));
+                // Reset the snake with the new size
+                // First, save the head position and direction
+                const headX = game.snake.head.x;
+                const headY = game.snake.head.y;
+                const direction = game.snake.direction;
+                
+                // Clear existing segments
+                game.snake.segments = [];
+                
+                // Add head segment
+                game.snake.segments.push({ x: headX, y: headY });
+                
+                // Add body segments in a line based on the direction
+                let offsetX = 0;
+                let offsetY = 0;
+                
+                switch (direction) {
+                    case 'right':
+                        offsetX = -1;
+                        break;
+                    case 'left':
+                        offsetX = 1;
+                        break;
+                    case 'up':
+                        offsetY = 1;
+                        break;
+                    case 'down':
+                        offsetY = -1;
+                        break;
                 }
+                
+                // Add remaining segments
+                for (let i = 1; i < newSize; i++) {
+                    game.snake.segments.push({
+                        x: headX + (offsetX * i),
+                        y: headY + (offsetY * i)
+                    });
+                }
+                
+                console.log(`Snake size updated to ${newSize} segments`);
                 break;
             case 'level':
-                game.level = parseInt(value);
-                document.getElementById('level').textContent = value;
+                // Set level directly to the new value
+                game.level = numValue;
+                document.getElementById('level').textContent = numValue;
                 break;
             case 'score':
-                game.score = parseInt(value);
-                document.getElementById('score').textContent = value;
+                // Set score directly to the new value
+                game.score = numValue;
+                document.getElementById('score').textContent = numValue;
+                document.getElementById('final-score').textContent = numValue;
                 break;
         }
     }

@@ -229,10 +229,17 @@ export class Game {
         // Check if food is eaten
         let foodEaten = false;
         if (!this.isParanoidMode) {
-            // Normal food handling for normal and infinite modes
+            // Normal food handling for normal mode
             if (this.food && this.food.isAtPosition(newHead.x, newHead.y)) {
-                this.handleFoodEaten();
+                this.handleFoodEaten(false); // Regular collection
                 foodEaten = true;
+            }
+            // Special food handling for infinite skin - collect food within 5 blocks of any snake segment
+            else if (window.skinManager && window.skinManager.isInfiniteSkin() && this.isFoodWithinSnakeRange()) {
+                this.handleFoodEaten(true); // Range collection
+                foodEaten = true;
+                // Show the collection effect
+                this.createRangeCollectionEffect();
             }
         } else {
             // Paranoid mode food handling
@@ -357,7 +364,7 @@ export class Game {
     }
     
     // Handle food eaten
-    handleFoodEaten() {
+    handleFoodEaten(isRangeCollection = false) {
         // Add points based on the fruit type
         this.score += this.food.points;
         
@@ -383,7 +390,12 @@ export class Game {
         // Check if we should grow the snake based on the fruitsPerGrowth setting
         const shouldGrow = this.fruitsEaten % settings.fruitsPerGrowth === 0;
         
-        if (shouldGrow) {
+        // For range collection with infinite skin, always grow by exactly 1 segment
+        if (isRangeCollection && window.skinManager && window.skinManager.isInfiniteSkin()) {
+            // We already added one segment in the move method, so no need to add more
+            // But also don't remove the tail
+            console.log(`Snake grew by 1 block after range collection in infinite skin mode`);
+        } else if (shouldGrow) {
             // We already added one segment in the move method, so we need to add (growthBlocksPerFruit - 1) more
             const extraGrowth = settings.growthBlocksPerFruit - 1;
             for (let i = 0; i < extraGrowth; i++) {
@@ -400,8 +412,8 @@ export class Game {
         }
         
         
-        // Apply speed increase based on fruits eaten
-        if (this.fruitsEaten % settings.fruitsForSpeedIncrease === 0) {
+        // Apply speed increase based on fruits eaten, but skip for range collection
+        if (!isRangeCollection && this.fruitsEaten % settings.fruitsForSpeedIncrease === 0) {
             // Apply speed increase but cap at MAX_SPEED
             this.gameSpeed = Math.min(MAX_SPEED, this.gameSpeed + settings.speedIncreaseAmount);
             clearInterval(this.gameLoop);
@@ -418,7 +430,8 @@ export class Game {
             const currentDifficulty = getCurrentDifficulty(this.level);
             const newDifficulty = getCurrentDifficulty(newLevel);
             
-            if (newDifficulty !== currentDifficulty) {
+            // Skip difficulty transition for range collection to avoid health loss
+            if (newDifficulty !== currentDifficulty && !isRangeCollection) {
                 // We're transitioning to a new difficulty - show prompt
                 this.pause(); // Pause the game during prompt
                 
@@ -627,5 +640,80 @@ export class Game {
     // Make calculateGameInterval available as a method for pause/resume
     calculateGameInterval(speed) {
         return calculateGameInterval(speed);
+    }
+    
+    // Check if food is within range of any snake segment (for Infinite skin)
+    isFoodWithinSnakeRange() {
+        // Only apply this feature for Infinite skin
+        if (!window.skinManager || !window.skinManager.isInfiniteSkin()) {
+            return false;
+        }
+        
+        // Don't check too frequently to avoid performance issues
+        // Only check every 3 game updates
+        if (!this._lastRangeCheck) {
+            this._lastRangeCheck = 0;
+        }
+        
+        this._lastRangeCheck++;
+        if (this._lastRangeCheck < 3) {
+            return false;
+        }
+        
+        this._lastRangeCheck = 0;
+        
+        const foodPos = this.food.position;
+        const range = 5; // 5-block range for collection
+        
+        // Check only head and every 3rd segment to improve performance
+        for (let i = 0; i < this.snake.segments.length; i += 3) {
+            const segment = this.snake.segments[i];
+            
+            // Calculate Manhattan distance between segment and food
+            const distance = Math.abs(segment.x - foodPos.x) + Math.abs(segment.y - foodPos.y);
+            
+            // If within range, food can be collected
+            if (distance <= range) {
+                // Store the segment that collected the food
+                this._rangeCollectionSegment = segment;
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    // Create a visual effect for range collection
+    createRangeCollectionEffect() {
+        // Only create effect if we have a segment that collected food
+        if (!this._rangeCollectionSegment || !this.food) {
+            return;
+        }
+        
+        const segment = this._rangeCollectionSegment;
+        const foodPos = this.food.position;
+        
+        // Store original context settings
+        const ctx = this.ctx;
+        const originalGlobalAlpha = ctx.globalAlpha;
+        const originalStrokeStyle = ctx.strokeStyle;
+        const originalLineWidth = ctx.lineWidth;
+        
+        // Create a line connecting the segment to the food
+        ctx.beginPath();
+        ctx.moveTo((segment.x + 0.5) * GRID_SIZE, (segment.y + 0.5) * GRID_SIZE);
+        ctx.lineTo((foodPos.x + 0.5) * GRID_SIZE, (foodPos.y + 0.5) * GRID_SIZE);
+        ctx.strokeStyle = '#00BFFF'; // Deep Sky Blue
+        ctx.lineWidth = 2;
+        ctx.globalAlpha = 0.6;
+        ctx.stroke();
+        
+        // Reset context settings
+        ctx.globalAlpha = originalGlobalAlpha;
+        ctx.strokeStyle = originalStrokeStyle;
+        ctx.lineWidth = originalLineWidth;
+        
+        // Clear the segment reference
+        this._rangeCollectionSegment = null;
     }
 }

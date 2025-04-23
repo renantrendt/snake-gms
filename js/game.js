@@ -31,6 +31,9 @@ window.onload = async function() {
     // Create a new game instance
     const snakeGame = new Game('game-canvas');
     
+    // Make the game instance globally available
+    window.snakeGame = snakeGame;
+    
     // Initialize skin manager and make it globally available
     window.skinManager = skinManager;
     skinManager.initSkinManager();
