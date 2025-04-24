@@ -685,9 +685,7 @@ function setupCreativeModeController() {
     const controls = [
         { id: 'creative-health', label: 'Health', min: 1, max: 10, default: 3 },
         { id: 'creative-speed', label: 'Speed', min: 1, max: 20, default: 5 },
-        { id: 'creative-size', label: 'Size', min: 1, max: 20, default: 3 },
-        { id: 'creative-level', label: 'Level', min: 1, max: 50, default: 1 },
-        { id: 'creative-score', label: 'Score', min: 0, max: 1000000, default: 0, step: 1000 }
+        { id: 'creative-size', label: 'Size', min: 1, max: 20, default: 3 }
     ];
     
     // Create control elements
@@ -735,8 +733,6 @@ function setupCreativeModeController() {
         document.getElementById('creative-health').value = game.health;
         document.getElementById('creative-speed').value = game.gameSpeed;
         document.getElementById('creative-size').value = game.snake.segments.length;
-        document.getElementById('creative-level').value = game.level;
-        document.getElementById('creative-score').value = game.score;
     };
     
     // Update values when the controller becomes visible
@@ -824,17 +820,7 @@ function setupCreativeModeController() {
                 
                 console.log(`Snake size updated to ${newSize} segments`);
                 break;
-            case 'level':
-                // Set level directly to the new value
-                game.level = numValue;
-                document.getElementById('level').textContent = numValue;
-                break;
-            case 'score':
-                // Set score directly to the new value
-                game.score = numValue;
-                document.getElementById('score').textContent = numValue;
-                document.getElementById('final-score').textContent = numValue;
-                break;
+
         }
     }
     
