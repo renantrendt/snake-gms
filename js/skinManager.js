@@ -179,11 +179,43 @@ export function selectSkin(skin) {
         return;
     }
     
+    // Check if skin is unlocked
+    let isUnlocked = true;
+    switch (skin) {
+        case SKINS.RAINBOW:
+            isUnlocked = playerManager.hasAchievement('Rainbow Stuff');
+            break;
+        case SKINS.SKULL:
+            isUnlocked = playerManager.hasAchievement('Death Master');
+            break;
+        case SKINS.PARANOID:
+            isUnlocked = playerManager.hasAchievement('Paranoid Master');
+            break;
+        case SKINS.INFINITE:
+            isUnlocked = playerManager.hasAchievement('Cosmic Explorer');
+            break;
+        case SKINS.HACKER:
+            isUnlocked = playerManager.hasAchievement('Hacker Mode');
+            break;
+    }
+    
+    // Only change if unlocked or it's the default skin
+    if (!isUnlocked && skin !== SKINS.DEFAULT) {
+        console.log(`Skin ${skin} is locked. Unlock it first!`);
+        return;
+    }
+    
     currentSkin = skin;
     console.log(`Selected skin: ${skin}`);
     
     // Update UI
-    updateSkinsUI(playerManager.hasAchievement('Rainbow Stuff'));
+    updateSkinsUI(
+        playerManager.hasAchievement('Rainbow Stuff'),
+        playerManager.hasAchievement('Death Master'),
+        playerManager.hasAchievement('Paranoid Master'),
+        playerManager.hasAchievement('Cosmic Explorer'),
+        playerManager.hasAchievement('Hacker Mode')
+    );
     
     // Save preference (could be added later)
     
@@ -688,6 +720,8 @@ function setupCreativeModeController() {
         { id: 'creative-size', label: 'Size', min: 1, max: 20, default: 3 }
     ];
     
+
+    
     // Create control elements
     controls.forEach(control => {
         const controlGroup = document.createElement('div');
@@ -723,6 +757,8 @@ function setupCreativeModeController() {
         controlGroup.appendChild(input);
         controller.appendChild(controlGroup);
     });
+    
+
     
     // Update input values when creative mode is shown
     const updateInputValues = () => {
