@@ -172,6 +172,12 @@ function setupCarouselNavigation() {
     });
 }
 
+// Global flag to track if the terminal should be visible during gameplay
+let keepTerminalVisible = false;
+
+// Global flag to track if we've switched from hacker skin
+let switchedFromHackerSkin = false;
+
 // Select a skin
 export function selectSkin(skin) {
     if (!Object.values(SKINS).includes(skin)) {
@@ -205,8 +211,20 @@ export function selectSkin(skin) {
         return;
     }
     
+    // Store the previous skin before changing
+    const previousSkin = currentSkin;
+    
+    // Update the current skin
     currentSkin = skin;
     console.log(`Selected skin: ${skin}`);
+    
+    // Check if we're switching from hacker skin
+    if (previousSkin === SKINS.HACKER && skin !== SKINS.HACKER) {
+        switchedFromHackerSkin = true;
+    }
+    
+    // Preserve terminal state - must be done before UI updates
+    preserveTerminalState();
     
     // Update UI
     updateSkinsUI(
@@ -217,9 +235,66 @@ export function selectSkin(skin) {
         playerManager.hasAchievement('Hacker Mode')
     );
     
-    // Save preference (could be added later)
+    // Schedule terminal restoration with multiple attempts to ensure it works
+    restoreTerminalState();
     
     return skin;
+}
+
+// Function to preserve terminal state before skin change
+function preserveTerminalState() {
+    const terminalContainer = document.getElementById('terminal-container');
+    const gameScreen = document.getElementById('game-screen');
+    
+    // Only preserve state if we're in the game screen
+    if (gameScreen && !gameScreen.classList.contains('hidden')) {
+        // Check if terminal is currently visible
+        if (terminalContainer && !terminalContainer.classList.contains('hidden')) {
+            keepTerminalVisible = true;
+            console.log('Terminal visibility state preserved');
+        }
+    }
+}
+
+// Function to restore terminal state after skin change
+function restoreTerminalState() {
+    const terminalContainer = document.getElementById('terminal-container');
+    const creativeController = document.getElementById('creative-mode-controller');
+    const gameScreen = document.getElementById('game-screen');
+    
+    // Only restore state if we're in the game screen
+    if (gameScreen && !gameScreen.classList.contains('hidden')) {
+        // Make multiple attempts to restore terminal visibility
+        if (keepTerminalVisible && terminalContainer) {
+            // Immediate attempt
+            terminalContainer.classList.remove('hidden');
+            
+            // Multiple delayed attempts at different intervals
+            [50, 100, 200, 500].forEach(delay => {
+                setTimeout(() => {
+                    if (terminalContainer) {
+                        terminalContainer.classList.remove('hidden');
+                    }
+                }, delay);
+            });
+        }
+        
+        // Handle creative mode controller visibility
+        if (creativeController) {
+            if (currentSkin === SKINS.HACKER || switchedFromHackerSkin) {
+                // Multiple attempts to ensure creative controller stays visible
+                creativeController.style.display = 'block';
+                
+                [50, 150, 300].forEach(delay => {
+                    setTimeout(() => {
+                        if (creativeController) {
+                            creativeController.style.display = 'block';
+                        }
+                    }, delay);
+                });
+            }
+        }
+    }
 }
 
 // Get the current skin
@@ -720,8 +795,6 @@ function setupCreativeModeController() {
         { id: 'creative-size', label: 'Size', min: 1, max: 20, default: 3 }
     ];
     
-
-    
     // Create control elements
     controls.forEach(control => {
         const controlGroup = document.createElement('div');
@@ -758,6 +831,34 @@ function setupCreativeModeController() {
         controller.appendChild(controlGroup);
     });
     
+    // Add skins button and dropdown to creative mode controller
+    const skinsContainer = document.createElement('div');
+    skinsContainer.className = 'creative-skins-container';
+    
+    // Create skins button
+    const skinsButton = document.createElement('button');
+    skinsButton.id = 'creative-skins-button';
+    skinsButton.className = 'creative-skins-button';
+    skinsButton.textContent = 'Skins';
+    
+    // Create skins dropdown
+    const skinsDropdown = document.createElement('div');
+    skinsDropdown.id = 'creative-skins-dropdown';
+    skinsDropdown.className = 'creative-skins-dropdown hidden';
+    
+    // Add elements to container
+    skinsContainer.appendChild(skinsButton);
+    skinsContainer.appendChild(skinsDropdown);
+    
+    // Add container to controller
+    controller.appendChild(skinsContainer);
+    
+    // Add click event to skins button
+    skinsButton.addEventListener('click', () => {
+        skinsDropdown.classList.toggle('hidden');
+        updateCreativeSkinsDropdown(skinsDropdown);
+    });
+    
 
     
     // Update input values when creative mode is shown
@@ -769,6 +870,12 @@ function setupCreativeModeController() {
         document.getElementById('creative-health').value = game.health;
         document.getElementById('creative-speed').value = game.gameSpeed;
         document.getElementById('creative-size').value = game.snake.segments.length;
+        
+        // Update the skins dropdown when creative mode is shown
+        const skinsDropdown = document.getElementById('creative-skins-dropdown');
+        if (skinsDropdown) {
+            updateCreativeSkinsDropdown(skinsDropdown);
+        }
     };
     
     // Update values when the controller becomes visible
@@ -783,6 +890,67 @@ function setupCreativeModeController() {
     });
     
     observer.observe(controller, { attributes: true });
+    
+    // Function to update the creative mode skins dropdown
+    function updateCreativeSkinsDropdown(dropdown) {
+        // Clear existing options
+        dropdown.innerHTML = '';
+        
+        // Get unlocked skins
+        const hasRainbowSkin = playerManager.hasAchievement('Rainbow Stuff');
+        const hasSkullSkin = playerManager.hasAchievement('Death Master');
+        const hasParanoidSkin = playerManager.hasAchievement('Paranoid Master');
+        const hasInfiniteSkin = playerManager.hasAchievement('Cosmic Explorer');
+        const hasHackerSkin = playerManager.hasAchievement('Hacker Mode');
+        
+        // Define available skins with their colors
+        const availableSkins = [
+            { id: SKINS.DEFAULT, name: 'Default', color: '#4CAF50', available: true },
+            { id: SKINS.RAINBOW, name: 'Rainbow', color: '#FF9800', available: hasRainbowSkin },
+            { id: SKINS.SKULL, name: 'Skull', color: '#FFFFFF', available: hasSkullSkin },
+            { id: SKINS.PARANOID, name: 'Paranoid', color: '#FF0000', available: hasParanoidSkin },
+            { id: SKINS.INFINITE, name: 'Infinite', color: '#3F51B5', available: hasInfiniteSkin },
+            { id: SKINS.HACKER, name: 'Hacker', color: '#00FF00', available: hasHackerSkin }
+        ];
+        
+        // Create options for each available skin
+        availableSkins.forEach(skin => {
+            if (skin.available) {
+                const option = document.createElement('div');
+                option.className = 'creative-skin-option';
+                if (skin.id === currentSkin) {
+                    option.classList.add('selected');
+                }
+                
+                // Create indicator and name elements
+                const indicator = document.createElement('span');
+                indicator.className = 'creative-skin-option-indicator';
+                indicator.style.backgroundColor = skin.color;
+                
+                const name = document.createElement('span');
+                name.className = 'creative-skin-option-name';
+                name.textContent = skin.name;
+                
+                // Add elements to option
+                option.appendChild(indicator);
+                option.appendChild(name);
+                
+                // Add click event to change skin
+                option.addEventListener('click', () => {
+                    selectSkin(skin.id);
+                    dropdown.classList.add('hidden');
+                    
+                    // Update selected state in dropdown
+                    document.querySelectorAll('.creative-skin-option').forEach(opt => {
+                        opt.classList.remove('selected');
+                    });
+                    option.classList.add('selected');
+                });
+                
+                dropdown.appendChild(option);
+            }
+        });
+    }
     
     // Function to update game stats
     function updateGameStat(stat, value) {
