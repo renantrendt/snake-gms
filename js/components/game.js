@@ -430,8 +430,14 @@ export class Game {
             const currentDifficulty = getCurrentDifficulty(this.level);
             const newDifficulty = getCurrentDifficulty(newLevel);
             
-            // Skip difficulty transition for range collection to avoid health loss
-            if (newDifficulty !== currentDifficulty && !isRangeCollection) {
+            console.log(`LEVEL TRANSITION: Score ${this.score}, Level ${this.level} -> ${newLevel}, Difficulty ${currentDifficulty} -> ${newDifficulty}`);
+            
+            // Explicitly check for the specific level transitions that should trigger dialogs
+            const isTransitionToMedium = this.level === 5 && newLevel === 6;
+            const isTransitionToHard = this.level === 10 && newLevel === 11;
+            
+            // Show dialog for medium or hard transitions, but skip for range collection
+            if ((isTransitionToMedium || isTransitionToHard) && !isRangeCollection) {
                 // We're transitioning to a new difficulty - show prompt
                 this.pause(); // Pause the game during prompt
                 
@@ -484,9 +490,16 @@ export class Game {
                     this.resume();
                 };
                 
+                // Remove any existing transition dialogs first
+                const existingDialogs = document.querySelectorAll('.transition-dialog');
+                existingDialogs.forEach(dialog => {
+                    document.body.removeChild(dialog);
+                });
+                
                 // Create and show the transition dialog
                 const transitionDialog = document.createElement('div');
                 transitionDialog.className = 'transition-dialog';
+                transitionDialog.id = 'difficulty-transition-dialog';
                 transitionDialog.innerHTML = `
                     <div class="transition-content">
                         <h2>New Difficulty: ${newDifficulty.charAt(0).toUpperCase() + newDifficulty.slice(1)}</h2>
@@ -498,18 +511,44 @@ export class Game {
                     </div>
                 `;
                 
+                // Make sure the dialog is visible
+                transitionDialog.style.display = 'flex';
+                
                 document.body.appendChild(transitionDialog);
+                console.log('Transition dialog created and appended to body');
                 
-                // Add event listeners to buttons
-                document.getElementById('continue-progress').addEventListener('click', () => {
-                    document.body.removeChild(transitionDialog);
-                    continueCurrentProgress();
-                });
+                // Add event listeners to buttons with error handling
+                const continueButton = document.getElementById('continue-progress');
+                if (continueButton) {
+                    continueButton.addEventListener('click', () => {
+                        try {
+                            if (transitionDialog.parentNode) {
+                                document.body.removeChild(transitionDialog);
+                            }
+                            continueCurrentProgress();
+                        } catch (error) {
+                            console.error('Error in continue button handler:', error);
+                        }
+                    });
+                } else {
+                    console.error('Continue progress button not found');
+                }
                 
-                document.getElementById('start-fresh').addEventListener('click', () => {
-                    document.body.removeChild(transitionDialog);
-                    startNewDifficulty();
-                });
+                const startFreshButton = document.getElementById('start-fresh');
+                if (startFreshButton) {
+                    startFreshButton.addEventListener('click', () => {
+                        try {
+                            if (transitionDialog.parentNode) {
+                                document.body.removeChild(transitionDialog);
+                            }
+                            startNewDifficulty();
+                        } catch (error) {
+                            console.error('Error in start fresh button handler:', error);
+                        }
+                    });
+                } else {
+                    console.error('Start fresh button not found');
+                }
                 
                 return; // Stop processing here until user makes a choice
             }
@@ -586,12 +625,131 @@ export class Game {
     
     // Update level display
     updateLevel() {
-        document.getElementById('level').textContent = this.level;
+        const previousLevel = parseInt(document.getElementById('level').textContent) || 0;
+        const newLevel = this.level;
+        
+        // Update the display
+        document.getElementById('level').textContent = newLevel;
+        
+        // Check for specific level transitions that should trigger difficulty dialogs
+        if (previousLevel === 5 && newLevel === 6) {
+            console.log('MEDIUM DIFFICULTY TRANSITION DETECTED');
+            this.showDifficultyTransitionDialog('medium');
+        } else if (previousLevel === 10 && newLevel === 11) {
+            console.log('HARD DIFFICULTY TRANSITION DETECTED');
+            this.showDifficultyTransitionDialog('hard');
+        }
     }
     
     // Update speed display
     updateSpeed() {
         document.getElementById('speed').textContent = this.gameSpeed;
+    }
+    
+    // Show difficulty transition dialog
+    showDifficultyTransitionDialog(newDifficulty) {
+        // Pause the game during the dialog
+        this.pause();
+        
+        // Remove any existing transition dialogs
+        const existingDialogs = document.querySelectorAll('.transition-dialog');
+        existingDialogs.forEach(dialog => {
+            if (dialog.parentNode) {
+                dialog.parentNode.removeChild(dialog);
+            }
+        });
+        
+        // Create the dialog
+        const transitionDialog = document.createElement('div');
+        transitionDialog.className = 'transition-dialog';
+        transitionDialog.id = 'difficulty-transition-dialog';
+        transitionDialog.innerHTML = `
+            <div class="transition-content">
+                <h2>New Difficulty: ${newDifficulty.charAt(0).toUpperCase() + newDifficulty.slice(1)}</h2>
+                <p>Do you want to continue from where you're at, or start over in ${newDifficulty} mode?</p>
+                <div class="transition-buttons">
+                    <button id="continue-progress">Continue Progress</button>
+                    <button id="start-fresh">Start Fresh</button>
+                </div>
+            </div>
+        `;
+        
+        // Ensure the dialog is visible
+        transitionDialog.style.display = 'flex';
+        transitionDialog.style.zIndex = '1000';
+        
+        // Add to the document
+        document.body.appendChild(transitionDialog);
+        console.log('Difficulty transition dialog created and displayed');
+        
+        // Set up the continue progress option
+        const continueProgress = () => {
+            // Remove the dialog
+            if (transitionDialog.parentNode) {
+                transitionDialog.parentNode.removeChild(transitionDialog);
+            }
+            
+            // Continue with current progress
+            // Each level adds 2 more to the speed, but cap at MAX_SPEED
+            this.gameSpeed = Math.min(MAX_SPEED, this.gameSpeed + 2);
+            
+            // Update display
+            this.updateSpeed();
+            this.updateDifficulty(newDifficulty);
+            
+            // Update background color
+            this.backgroundColor = backgroundColors[this.level];
+            
+            // Resume game
+            this.resume();
+        };
+        
+        // Set up the start fresh option
+        const startFresh = () => {
+            // Remove the dialog
+            if (transitionDialog.parentNode) {
+                transitionDialog.parentNode.removeChild(transitionDialog);
+            }
+            
+            // Set up based on difficulty
+            if (newDifficulty === 'medium') {
+                // Start at level 6 with speed 8 and 3 lives
+                this.level = 6;
+                this.gameSpeed = 8;
+                this.health = 3;
+            } else if (newDifficulty === 'hard') {
+                // Start at level 12 with speed 12 and 2 lives
+                this.level = 12;
+                this.gameSpeed = 12;
+                this.health = 2;
+            }
+            
+            // Update snake position
+            this.snake.reposition();
+            
+            // Update display
+            this.updateLevel();
+            this.updateSpeed();
+            this.updateHealth();
+            this.updateDifficulty(newDifficulty);
+            
+            // Update background color
+            this.backgroundColor = backgroundColors[this.level];
+            
+            // Resume game
+            this.resume();
+        };
+        
+        // Add button event listeners
+        const continueButton = document.getElementById('continue-progress');
+        if (continueButton) {
+            continueButton.addEventListener('click', continueProgress);
+        }
+        
+        const startFreshButton = document.getElementById('start-fresh');
+        if (startFreshButton) {
+            startFreshButton.addEventListener('click', startFresh);
+        }
     }
     
     // Update difficulty display
